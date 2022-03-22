@@ -192,12 +192,12 @@ const (
 
 // Config -
 type Config struct {
-	TracesExporterEndpoint          string            `env:"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,default=ingest.lightstep.com:443"`
+	TracesExporterEndpoint          string            `env:"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,default=otlp.nr-data.net:443"`
 	TracesExporterEndpointInsecure  bool              `env:"OTEL_EXPORTER_OTLP_TRACES_INSECURE,default=false"`
 	ServiceName                     string            `env:"OTEL_SERVICE_NAME"`
 	ServiceVersion                  string            `env:"OTEL_SERVICE_VERSION,default=unknown"`
 	Headers                         map[string]string `env:"OTEL_EXPORTER_OTLP_HEADERS"`
-	MetricsExporterEndpoint         string            `env:"OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,default=ingest.lightstep.com:443"`
+	MetricsExporterEndpoint         string            `env:"OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,default=otlp.nr-data.net:443"`
 	MetricsExporterEndpointInsecure bool              `env:"OTEL_EXPORTER_OTLP_METRICS_INSECURE,default=false"`
 	MetricsEnabled                  bool              `env:"OTEL_METRICS_ENABLED,default=true"`
 	LogLevel                        string            `env:"OTEL_LOG_LEVEL,default=info"`
