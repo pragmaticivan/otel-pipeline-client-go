@@ -121,16 +121,16 @@ func TestInvalidMissingDefaultAccessToken(t *testing.T) {
 func TestInvalidTraceDefaultAccessToken(t *testing.T) {
 	testInvalidMissingAccessToken(t,
 		WithAccessToken(""),
-		WithSpanExporterEndpoint(DefaultSpanExporterEndpoint),
-		WithMetricExporterEndpoint("127.0.0.1:4000"),
+		WithTracesExporterEndpoint(DefaultTracesExporterEndpoint),
+		WithMetricsExporterEndpoint("127.0.0.1:4000"),
 	)
 }
 
 func TestInvalidMetricDefaultAccessToken(t *testing.T) {
 	testInvalidMissingAccessToken(t,
 		WithAccessToken(""),
-		WithSpanExporterEndpoint("127.0.0.1:4000"),
-		WithMetricExporterEndpoint(DefaultMetricExporterEndpoint))
+		WithTracesExporterEndpoint("127.0.0.1:4000"),
+		WithMetricsExporterEndpoint(DefaultMetricsExporterEndpoint))
 }
 
 func testInvalidAccessToken(t *testing.T, opts ...Option) {
@@ -148,15 +148,15 @@ func testInvalidAccessToken(t *testing.T, opts ...Option) {
 
 func TestInvalidTraceAccessTokenLength(t *testing.T) {
 	testInvalidAccessToken(t,
-		WithSpanExporterEndpoint("127.0.0.1:4000"),
+		WithTracesExporterEndpoint("127.0.0.1:4000"),
 		WithAccessToken("1234"),
 	)
 }
 
 func TestInvalidMetricAccessTokenLength(t *testing.T) {
 	testInvalidAccessToken(t,
-		WithSpanExporterEndpoint(""),
-		WithMetricExporterEndpoint("127.0.0.1:4000"),
+		WithTracesExporterEndpoint(""),
+		WithMetricsExporterEndpoint("127.0.0.1:4000"),
 		WithAccessToken("1234"),
 	)
 }
@@ -181,7 +181,7 @@ func TestTraceEndpointDisabled(t *testing.T) {
 		t,
 		expectedTracingDisabledMessage,
 		WithAccessToken(fakeAccessToken()),
-		WithSpanExporterEndpoint(""),
+		WithTracesExporterEndpoint(""),
 	)
 }
 
@@ -190,7 +190,7 @@ func TestMetricEndpointDisabled(t *testing.T) {
 		t,
 		expectedMetricsDisabledMessage,
 		WithAccessToken(fakeAccessToken()),
-		WithMetricExporterEndpoint(""),
+		WithMetricsExporterEndpoint(""),
 	)
 }
 
@@ -209,8 +209,8 @@ func TestValidConfig(t *testing.T) {
 	lsOtel = ConfigureOpentelemetry(
 		WithLogger(logger),
 		WithServiceName("test-service"),
-		WithMetricExporterEndpoint("localhost:443"),
-		WithSpanExporterEndpoint("localhost:443"),
+		WithMetricsExporterEndpoint("localhost:443"),
+		WithTracesExporterEndpoint("localhost:443"),
 	)
 	defer lsOtel.Shutdown()
 
@@ -240,8 +240,8 @@ func TestInvalidMetricsPushIntervalEnv(t *testing.T) {
 	lsOtel := ConfigureOpentelemetry(
 		WithLogger(logger),
 		WithServiceName("test-service"),
-		WithSpanExporterEndpoint("127.0.0.1:4000"),
-		WithMetricExporterEndpoint("127.0.0.1:4000"),
+		WithTracesExporterEndpoint("127.0.0.1:4000"),
+		WithMetricsExporterEndpoint("127.0.0.1:4000"),
 	)
 	defer lsOtel.Shutdown()
 
@@ -254,9 +254,9 @@ func TestInvalidMetricsPushIntervalConfig(t *testing.T) {
 	lsOtel := ConfigureOpentelemetry(
 		WithLogger(logger),
 		WithServiceName("test-service"),
-		WithSpanExporterEndpoint("127.0.0.1:4000"),
-		WithMetricExporterEndpoint("127.0.0.1:4000"),
-		WithMetricReportingPeriod(-time.Second),
+		WithTracesExporterEndpoint("127.0.0.1:4000"),
+		WithMetricsExporterEndpoint("127.0.0.1:4000"),
+		WithMetricsReportingPeriod(-time.Second),
 	)
 	defer lsOtel.Shutdown()
 
@@ -270,7 +270,7 @@ func TestDebugEnabled(t *testing.T) {
 		WithLogger(logger),
 		WithServiceName("test-service"),
 		WithAccessToken("access-token-123-123456789abcdef"),
-		WithSpanExporterEndpoint("localhost:443"),
+		WithTracesExporterEndpoint("localhost:443"),
 		WithLogLevel("debug"),
 		WithResourceAttributes(map[string]string{
 			"attr1":     "val1",
@@ -306,19 +306,19 @@ func TestDefaultConfig(t *testing.T) {
 	}
 
 	expected := Config{
-		ServiceName:                    "",
-		ServiceVersion:                 "unknown",
-		SpanExporterEndpoint:           "ingest.lightstep.com:443",
-		SpanExporterEndpointInsecure:   false,
-		MetricExporterEndpoint:         "ingest.lightstep.com:443",
-		MetricExporterEndpointInsecure: false,
-		MetricReportingPeriod:          "30s",
-		MetricsEnabled:                 true,
-		LogLevel:                       "info",
-		Propagators:                    []string{"b3"},
-		Resource:                       resource.NewWithAttributes(semconv.SchemaURL, attributes...),
-		logger:                         logger,
-		errorHandler:                   handler,
+		ServiceName:                     "",
+		ServiceVersion:                  "unknown",
+		TracesExporterEndpoint:          "otlp.nr-data.net:443",
+		TracesExporterEndpointInsecure:  false,
+		MetricsExporterEndpoint:         "otlp.nr-data.net:443",
+		MetricsExporterEndpointInsecure: false,
+		MetricReportingPeriod:           "30s",
+		MetricsEnabled:                  true,
+		LogLevel:                        "info",
+		Propagators:                     []string{"b3"},
+		Resource:                        resource.NewWithAttributes(semconv.SchemaURL, attributes...),
+		logger:                          logger,
+		errorHandler:                    handler,
 	}
 	assert.Equal(t, expected, config)
 }
@@ -342,18 +342,18 @@ func TestEnvironmentVariables(t *testing.T) {
 	}
 
 	expected := Config{
-		ServiceName:                    "test-service-name",
-		ServiceVersion:                 "test-service-version",
-		SpanExporterEndpoint:           "satellite-url",
-		SpanExporterEndpointInsecure:   true,
-		MetricExporterEndpoint:         "metrics-url",
-		MetricExporterEndpointInsecure: true,
-		MetricReportingPeriod:          "30s",
-		LogLevel:                       "debug",
-		Propagators:                    []string{"b3", "w3c"},
-		Resource:                       resource.NewWithAttributes(semconv.SchemaURL, attributes...),
-		logger:                         logger,
-		errorHandler:                   handler,
+		ServiceName:                     "test-service-name",
+		ServiceVersion:                  "test-service-version",
+		TracesExporterEndpoint:          "satellite-url",
+		TracesExporterEndpointInsecure:  true,
+		MetricsExporterEndpoint:         "metrics-url",
+		MetricsExporterEndpointInsecure: true,
+		MetricReportingPeriod:           "30s",
+		LogLevel:                        "debug",
+		Propagators:                     []string{"b3", "w3c"},
+		Resource:                        resource.NewWithAttributes(semconv.SchemaURL, attributes...),
+		logger:                          logger,
+		errorHandler:                    handler,
 	}
 	unsetEnvironment()
 	assert.Equal(t, expected, config)
@@ -368,10 +368,10 @@ func TestConfigurationOverrides(t *testing.T) {
 		WithServiceName("override-service-name"),
 		WithServiceVersion("override-service-version"),
 		WithAccessToken("override-access-token"),
-		WithSpanExporterEndpoint("override-satellite-url"),
-		WithSpanExporterInsecure(false),
-		WithMetricExporterEndpoint("override-metrics-url"),
-		WithMetricExporterInsecure(false),
+		WithTracesExporterEndpoint("override-satellite-url"),
+		WithTracesExporterInsecure(false),
+		WithMetricsExporterEndpoint("override-metrics-url"),
+		WithMetricsExporterInsecure(false),
 		WithLogLevel("info"),
 		WithLogger(logger),
 		WithErrorHandler(handler),
@@ -388,19 +388,19 @@ func TestConfigurationOverrides(t *testing.T) {
 	}
 
 	expected := Config{
-		ServiceName:                    "override-service-name",
-		ServiceVersion:                 "override-service-version",
-		SpanExporterEndpoint:           "override-satellite-url",
-		SpanExporterEndpointInsecure:   false,
-		MetricExporterEndpoint:         "override-metrics-url",
-		MetricExporterEndpointInsecure: false,
-		MetricReportingPeriod:          "30s",
-		Headers:                        map[string]string{"lightstep-access-token": "override-access-token"},
-		LogLevel:                       "info",
-		Propagators:                    []string{"b3"},
-		Resource:                       resource.NewWithAttributes(semconv.SchemaURL, attributes...),
-		logger:                         logger,
-		errorHandler:                   handler,
+		ServiceName:                     "override-service-name",
+		ServiceVersion:                  "override-service-version",
+		TracesExporterEndpoint:          "override-satellite-url",
+		TracesExporterEndpointInsecure:  false,
+		MetricsExporterEndpoint:         "override-metrics-url",
+		MetricsExporterEndpointInsecure: false,
+		MetricReportingPeriod:           "30s",
+		Headers:                         map[string]string{"api-key": "override-access-token"},
+		LogLevel:                        "info",
+		Propagators:                     []string{"b3"},
+		Resource:                        resource.NewWithAttributes(semconv.SchemaURL, attributes...),
+		logger:                          logger,
+		errorHandler:                    handler,
 	}
 	assert.Equal(t, expected, config)
 }
@@ -437,7 +437,7 @@ func TestConfigurePropagators(t *testing.T) {
 	lsOtel := ConfigureOpentelemetry(
 		WithLogger(logger),
 		WithServiceName("test-service"),
-		WithSpanExporterEndpoint("localhost:443"),
+		WithTracesExporterEndpoint("localhost:443"),
 	)
 	defer lsOtel.Shutdown()
 	ctx, finish := otel.Tracer("ex.com/basic").Start(ctx, "foo")
@@ -452,7 +452,7 @@ func TestConfigurePropagators(t *testing.T) {
 	lsOtel = ConfigureOpentelemetry(
 		WithLogger(logger),
 		WithServiceName("test-service"),
-		WithSpanExporterEndpoint("localhost:443"),
+		WithTracesExporterEndpoint("localhost:443"),
 		WithPropagators([]string{"b3", "baggage", "tracecontext"}),
 	)
 	defer lsOtel.Shutdown()
@@ -468,9 +468,9 @@ func TestConfigurePropagators(t *testing.T) {
 	lsOtel = ConfigureOpentelemetry(
 		WithLogger(logger),
 		WithServiceName("test-service"),
-		WithSpanExporterEndpoint("localhost:443"),
+		WithTracesExporterEndpoint("localhost:443"),
 		WithPropagators([]string{"invalid"}),
-		WithMetricExporterEndpoint("localhost:443"),
+		WithMetricsExporterEndpoint("localhost:443"),
 	)
 	defer lsOtel.Shutdown()
 
@@ -555,7 +555,7 @@ func TestEmptyHostnameDefaultsToOsHostname(t *testing.T) {
 	lsOtel := ConfigureOpentelemetry(
 		WithLogger(logger),
 		WithServiceName("test-service"),
-		WithSpanExporterEndpoint("localhost:443"),
+		WithTracesExporterEndpoint("localhost:443"),
 		WithLogLevel("debug"),
 		WithResourceAttributes(map[string]string{
 			"attr1":     "val1",
@@ -569,33 +569,33 @@ func TestEmptyHostnameDefaultsToOsHostname(t *testing.T) {
 }
 
 func setEnvironment() {
-	os.Setenv("LS_SERVICE_NAME", "test-service-name")
-	os.Setenv("LS_SERVICE_VERSION", "test-service-version")
-	os.Setenv("LS_ACCESS_TOKEN", "token")
-	os.Setenv("OTEL_EXPORTER_OTLP_SPAN_ENDPOINT", "satellite-url")
-	os.Setenv("OTEL_EXPORTER_OTLP_SPAN_INSECURE", "true")
-	os.Setenv("OTEL_EXPORTER_OTLP_METRIC_ENDPOINT", "metrics-url")
-	os.Setenv("OTEL_EXPORTER_OTLP_METRIC_INSECURE", "true")
+	os.Setenv("OTEL_SERVICE_NAME", "test-service-name")
+	os.Setenv("OTEL_SERVICE_VERSION", "test-service-version")
+	os.Setenv("OTEL_ACCESS_TOKEN", "token")
+	os.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "satellite-url")
+	os.Setenv("OTEL_EXPORTER_OTLP_TRACES_INSECURE", "true")
+	os.Setenv("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", "metrics-url")
+	os.Setenv("OTEL_EXPORTER_OTLP_METRICS_INSECURE", "true")
 	os.Setenv("OTEL_LOG_LEVEL", "debug")
 	os.Setenv("OTEL_PROPAGATORS", "b3,w3c")
 	os.Setenv("OTEL_RESOURCE_ATTRIBUTES", "service.name=test-service-name-b")
-	os.Setenv("LS_METRICS_ENABLED", "false")
+	os.Setenv("OTEL_METRICS_ENABLED", "false")
 }
 
 func unsetEnvironment() {
 	vars := []string{
-		"LS_SERVICE_NAME",
-		"LS_SERVICE_VERSION",
-		"LS_ACCESS_TOKEN",
-		"OTEL_EXPORTER_OTLP_SPAN_ENDPOINT",
-		"OTEL_EXPORTER_OTLP_SPAN_INSECURE",
-		"OTEL_EXPORTER_OTLP_METRIC_ENDPOINT",
-		"OTEL_EXPORTER_OTLP_METRIC_INSECURE",
+		"OTEL_SERVICE_NAME",
+		"OTEL_SERVICE_VERSION",
+		"OTEL_ACCESS_TOKEN",
+		"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+		"OTEL_EXPORTER_OTLP_TRACES_INSECURE",
+		"OTEL_EXPORTER_OTLP_METRICS_ENDPOINT",
+		"OTEL_EXPORTER_OTLP_METRICS_INSECURE",
 		"OTEL_LOG_LEVEL",
 		"OTEL_PROPAGATORS",
 		"OTEL_RESOURCE_ATTRIBUTES",
 		"OTEL_EXPORTER_OTLP_METRIC_PERIOD",
-		"LS_METRICS_ENABLED",
+		"OTEL_METRICS_ENABLED",
 	}
 	for _, envvar := range vars {
 		os.Unsetenv(envvar)

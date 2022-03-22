@@ -23,7 +23,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/lightstep/otel-launcher-go/pipelines"
+	"github.com/pragmaticivan/otel-pipeline-client-go/pipelines"
 	"github.com/sethvargo/go-envconfig"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -31,12 +31,10 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
-const lightstepAccessTokenHeader = "lightstep-access-token"
-
+// Option -
 type Option func(*Config)
 
-// WithAccessToken configures the lightstep access token
-// remain compatible with the Lightstep-only launcher for now...
+// WithAccessToken configures the access token
 func WithAccessToken(accessToken string) Option {
 	// this will actually get used
 	return func(c *Config) {
@@ -44,21 +42,28 @@ func WithAccessToken(accessToken string) Option {
 		if c.Headers == nil {
 			c.Headers = make(map[string]string)
 		}
-		c.Headers["lightstep-access-token"] = accessToken
+		c.Headers[c.AuthAccessTokenHeader] = accessToken
 	}
 }
 
-// WithMetricExporterEndpoint configures the endpoint for sending metrics via OTLP
-func WithMetricExporterEndpoint(url string) Option {
+// WithAuthAccessTokenHeader -
+func WithAuthAccessTokenHeader(header string) Option {
 	return func(c *Config) {
-		c.MetricExporterEndpoint = url
+		c.AuthAccessTokenHeader = header
 	}
 }
 
-// WithSpanExporterEndpoint configures the endpoint for sending traces via OTLP
-func WithSpanExporterEndpoint(url string) Option {
+// WithMetricsExporterEndpoint configures the endpoint for sending metrics via OTLP
+func WithMetricsExporterEndpoint(url string) Option {
 	return func(c *Config) {
-		c.SpanExporterEndpoint = url
+		c.MetricsExporterEndpoint = url
+	}
+}
+
+// WithTracesExporterEndpoint configures the endpoint for sending traces via OTLP
+func WithTracesExporterEndpoint(url string) Option {
+	return func(c *Config) {
+		c.TracesExporterEndpoint = url
 	}
 }
 
@@ -95,19 +100,19 @@ func WithLogLevel(loglevel string) Option {
 	}
 }
 
-// WithSpanExporterInsecure permits connecting to the
+// WithTracesExporterInsecure permits connecting to the
 // trace endpoint without a certificate
-func WithSpanExporterInsecure(insecure bool) Option {
+func WithTracesExporterInsecure(insecure bool) Option {
 	return func(c *Config) {
-		c.SpanExporterEndpointInsecure = insecure
+		c.TracesExporterEndpointInsecure = insecure
 	}
 }
 
-// WithMetricExporterInsecure permits connecting to the
+// WithMetricsExporterInsecure permits connecting to the
 // metric endpoint without a certificate
-func WithMetricExporterInsecure(insecure bool) Option {
+func WithMetricsExporterInsecure(insecure bool) Option {
 	return func(c *Config) {
-		c.MetricExporterEndpointInsecure = insecure
+		c.MetricsExporterEndpointInsecure = insecure
 	}
 }
 
@@ -135,7 +140,7 @@ func WithErrorHandler(handler otel.ErrorHandler) Option {
 
 // WithMetricReportingPeriod configures the metric reporting period,
 // how often the controller collects and exports metric data.
-func WithMetricReportingPeriod(p time.Duration) Option {
+func WithMetricsReportingPeriod(p time.Duration) Option {
 	return func(c *Config) {
 		c.MetricReportingPeriod = fmt.Sprint(p)
 	}
@@ -179,30 +184,31 @@ func (l *defaultHandler) Handle(err error) {
 }
 
 const (
-	// Note: these values should match the defaults used in `env` tags for Config fields.
-	// Note: the MetricExporterEndpoint currently defaults to "".  When LS is ready for OTLP metrics
-	// we'll set this to `DefaultMetricExporterEndpoint`.
-
-	DefaultSpanExporterEndpoint   = "ingest.lightstep.com:443"
-	DefaultMetricExporterEndpoint = "ingest.lightstep.com:443"
+	// DefaultTracesExporterEndpoint -
+	DefaultTracesExporterEndpoint = "otlp.nr-data.net:443"
+	// DefaultMetricsExporterEndpoint -
+	DefaultMetricsExporterEndpoint = "otlp.nr-data.net:443"
 )
 
+// Config -
 type Config struct {
-	SpanExporterEndpoint           string            `env:"OTEL_EXPORTER_OTLP_SPAN_ENDPOINT,default=ingest.lightstep.com:443"`
-	SpanExporterEndpointInsecure   bool              `env:"OTEL_EXPORTER_OTLP_SPAN_INSECURE,default=false"`
-	ServiceName                    string            `env:"LS_SERVICE_NAME"`
-	ServiceVersion                 string            `env:"LS_SERVICE_VERSION,default=unknown"`
-	Headers                        map[string]string `env:"OTEL_EXPORTER_OTLP_HEADERS"`
-	MetricExporterEndpoint         string            `env:"OTEL_EXPORTER_OTLP_METRIC_ENDPOINT,default=ingest.lightstep.com:443"`
-	MetricExporterEndpointInsecure bool              `env:"OTEL_EXPORTER_OTLP_METRIC_INSECURE,default=false"`
-	MetricsEnabled                 bool              `env:"LS_METRICS_ENABLED,default=true"`
-	LogLevel                       string            `env:"OTEL_LOG_LEVEL,default=info"`
-	Propagators                    []string          `env:"OTEL_PROPAGATORS,default=b3"`
-	MetricReportingPeriod          string            `env:"OTEL_EXPORTER_OTLP_METRIC_PERIOD,default=30s"`
-	ResourceAttributes             map[string]string
-	Resource                       *resource.Resource
-	logger                         Logger
-	errorHandler                   otel.ErrorHandler
+	TracesExporterEndpoint          string            `env:"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,default=ingest.lightstep.com:443"`
+	TracesExporterEndpointInsecure  bool              `env:"OTEL_EXPORTER_OTLP_TRACES_INSECURE,default=false"`
+	ServiceName                     string            `env:"OTEL_SERVICE_NAME"`
+	ServiceVersion                  string            `env:"OTEL_SERVICE_VERSION,default=unknown"`
+	Headers                         map[string]string `env:"OTEL_EXPORTER_OTLP_HEADERS"`
+	MetricsExporterEndpoint         string            `env:"OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,default=ingest.lightstep.com:443"`
+	MetricsExporterEndpointInsecure bool              `env:"OTEL_EXPORTER_OTLP_METRICS_INSECURE,default=false"`
+	MetricsEnabled                  bool              `env:"OTEL_METRICS_ENABLED,default=true"`
+	LogLevel                        string            `env:"OTEL_LOG_LEVEL,default=info"`
+	Propagators                     []string          `env:"OTEL_PROPAGATORS,default=b3"`
+	MetricReportingPeriod           string            `env:"OTEL_EXPORTER_OTLP_METRICS_PERIOD,default=30s"`
+	AuthEnabled                     bool              `env:"AUTH_ENABLED,default=true"`
+	AuthAccessTokenHeader           string            `env:"AUTH_ACCESS_TOKEN_HEADER,default=api-key"`
+	ResourceAttributes              map[string]string
+	Resource                        *resource.Resource
+	logger                          Logger
+	errorHandler                    otel.ErrorHandler
 }
 
 func checkEndpointDefault(value, defValue string) error {
@@ -211,7 +217,7 @@ func checkEndpointDefault(value, defValue string) error {
 		return nil
 	}
 	if value == defValue {
-		return fmt.Errorf("invalid configuration: access token missing, must be set when reporting to %s. Set LS_ACCESS_TOKEN env var or configure WithAccessToken in code", value)
+		return fmt.Errorf("invalid configuration: access token missing, must be set when reporting to %s. Configure WithAccessToken in code", value)
 	}
 	return nil
 }
@@ -220,7 +226,7 @@ func accessToken(c Config) string {
 	if c.Headers == nil {
 		return ""
 	}
-	return c.Headers[lightstepAccessTokenHeader]
+	return c.Headers[c.AuthAccessTokenHeader]
 }
 
 func validateConfiguration(c Config) error {
@@ -235,24 +241,19 @@ func validateConfiguration(c Config) error {
 			}
 		}
 		if !serviceNameSet {
-			return errors.New("invalid configuration: service name missing. Set LS_SERVICE_NAME env var or configure WithServiceName in code")
+			return errors.New("invalid configuration: service name missing. Set OTEL_SERVICE_NAME env var or configure WithServiceName in code")
 		}
 	}
 
 	accessTokenLen := len(accessToken(c))
 	if accessTokenLen == 0 {
-		if err := checkEndpointDefault(c.SpanExporterEndpoint, DefaultSpanExporterEndpoint); err != nil {
+		if err := checkEndpointDefault(c.TracesExporterEndpoint, DefaultTracesExporterEndpoint); err != nil {
 			return err
 		}
 
-		if err := checkEndpointDefault(c.MetricExporterEndpoint, DefaultMetricExporterEndpoint); err != nil {
+		if err := checkEndpointDefault(c.MetricsExporterEndpoint, DefaultMetricsExporterEndpoint); err != nil {
 			return err
 		}
-	}
-
-	// TODO(@tobert) will probably break on some providers but seems fine for my use cases right now
-	if accessTokenLen > 0 && (accessTokenLen != 32 && accessTokenLen != 84 && accessTokenLen != 104 && accessToken(c) != "developer") {
-		return fmt.Errorf("invalid configuration: access token length incorrect. Ensure token is set correctly")
 	}
 
 	return nil
@@ -340,13 +341,13 @@ func newResource(c *Config) *resource.Resource {
 }
 
 func setupTracing(c Config) (func() error, error) {
-	if c.SpanExporterEndpoint == "" {
+	if c.TracesExporterEndpoint == "" {
 		c.logger.Debugf("tracing is disabled by configuration: no endpoint set")
 		return nil, nil
 	}
 	return pipelines.NewTracePipeline(pipelines.PipelineConfig{
-		Endpoint:    c.SpanExporterEndpoint,
-		Insecure:    c.SpanExporterEndpointInsecure,
+		Endpoint:    c.TracesExporterEndpoint,
+		Insecure:    c.TracesExporterEndpointInsecure,
 		Headers:     c.Headers,
 		Resource:    c.Resource,
 		Propagators: c.Propagators,
@@ -361,14 +362,15 @@ func setupMetrics(c Config) (func() error, error) {
 		return nil, nil
 	}
 	return pipelines.NewMetricsPipeline(pipelines.PipelineConfig{
-		Endpoint:        c.MetricExporterEndpoint,
-		Insecure:        c.MetricExporterEndpointInsecure,
+		Endpoint:        c.MetricsExporterEndpoint,
+		Insecure:        c.MetricsExporterEndpointInsecure,
 		Headers:         c.Headers,
 		Resource:        c.Resource,
 		ReportingPeriod: c.MetricReportingPeriod,
 	})
 }
 
+// ConfigureOpentelemetry - configures otel values
 func ConfigureOpentelemetry(opts ...Option) Launcher {
 	c := newConfig(opts...)
 
@@ -381,11 +383,6 @@ func ConfigureOpentelemetry(opts ...Option) Launcher {
 
 	if c.Headers == nil {
 		c.Headers = map[string]string{}
-	}
-
-	token := os.Getenv("LS_ACCESS_TOKEN")
-	if len(token) > 0 && len(c.Headers[lightstepAccessTokenHeader]) == 0 {
-		c.Headers[lightstepAccessTokenHeader] = token
 	}
 
 	err := validateConfiguration(c)
@@ -414,6 +411,7 @@ func ConfigureOpentelemetry(opts ...Option) Launcher {
 	return ls
 }
 
+// Shutdown - shutdown launcher
 func (ls Launcher) Shutdown() {
 	for _, shutdown := range ls.shutdownFuncs {
 		if err := shutdown(); err != nil {
