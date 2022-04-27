@@ -56,7 +56,6 @@ func NewMetricsPipeline(c PipelineConfig) (func() error, error) {
 				histogram.WithExplicitBoundaries([]float64{0.001, 0.01, 0.1, 0.5, 1, 2, 5, 10}),
 			),
 			aggregation.DeltaTemporalitySelector(),
-			metricExporter,
 		),
 		controller.WithExporter(metricExporter),
 		controller.WithResource(c.Resource),
