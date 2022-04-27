@@ -24,9 +24,11 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	metricglobal "go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/sdk/export/metric/aggregation"
+	"go.opentelemetry.io/otel/sdk/metric/aggregator/histogram"
 	controller "go.opentelemetry.io/otel/sdk/metric/controller/basic"
 	processor "go.opentelemetry.io/otel/sdk/metric/processor/basic"
-	selector "go.opentelemetry.io/otel/sdk/metric/selector/simple"
+	"go.opentelemetry.io/otel/sdk/metric/selector/simple"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding/gzip"
 )
@@ -50,7 +52,10 @@ func NewMetricsPipeline(c PipelineConfig) (func() error, error) {
 	}
 	pusher := controller.New(
 		processor.NewFactory(
-			selector.NewWithInexpensiveDistribution(),
+			simple.NewWithHistogramDistribution(
+				histogram.WithExplicitBoundaries([]float64{0.001, 0.01, 0.1, 0.5, 1, 2, 5, 10}),
+			),
+			aggregation.DeltaTemporalitySelector(),
 			metricExporter,
 		),
 		controller.WithExporter(metricExporter),
