@@ -91,6 +91,6 @@ func newMetricsExporter(endpoint string, insecure bool, headers map[string]strin
 			otlpmetricgrpc.WithHeaders(headers),
 			otlpmetricgrpc.WithCompressor(gzip.Name),
 		),
-		otlpmetric.WithMetricAggregationTemporalitySelector(aggregation.StatelessTemporalitySelector()),
+		otlpmetric.WithMetricAggregationTemporalitySelector(aggregation.CumulativeTemporalitySelector()),
 	)
 }
