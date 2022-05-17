@@ -19,19 +19,47 @@ import (
 	"fmt"
 	"time"
 
+	"go.opentelemetry.io/otel/sdk/metric/sdkapi"
+
 	hostMetrics "go.opentelemetry.io/contrib/instrumentation/host"
 	runtimeMetrics "go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	metricglobal "go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/sdk/metric/aggregator/histogram"
 	controller "go.opentelemetry.io/otel/sdk/metric/controller/basic"
 	"go.opentelemetry.io/otel/sdk/metric/export/aggregation"
 	processor "go.opentelemetry.io/otel/sdk/metric/processor/basic"
-	"go.opentelemetry.io/otel/sdk/metric/selector/simple"
+	selector "go.opentelemetry.io/otel/sdk/metric/selector/simple"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding/gzip"
 )
 
+type (
+	customTemporalitySelector struct{}
+)
+
+func (s customTemporalitySelector) TemporalityFor(desc *sdkapi.Descriptor, kind aggregation.Kind) aggregation.Temporality {
+	if desc.InstrumentKind() == sdkapi.CounterInstrumentKind ||
+		desc.InstrumentKind() == sdkapi.CounterObserverInstrumentKind ||
+		desc.InstrumentKind() == sdkapi.HistogramInstrumentKind {
+		return aggregation.DeltaTemporality
+	}
+	return aggregation.CumulativeTemporality
+}
+
+// CustomTemporalitySelector -
+func CustomTemporalitySelector() aggregation.TemporalitySelector {
+	return customTemporalitySelector{}
+}
+
+var (
+	// This configures temporality to work correctly with New Relic for all metric types.
+	// Counters and Histograms instruments use delta, everything else uses cumulative.
+	temporalitySelector = CustomTemporalitySelector()
+)
+
+// NewMetricsPipeline -
 func NewMetricsPipeline(c PipelineConfig) (func() error, error) {
 	metricExporter, err := newMetricsExporter(c.Endpoint, c.Insecure, c.Headers)
 	if err != nil {
@@ -51,8 +79,10 @@ func NewMetricsPipeline(c PipelineConfig) (func() error, error) {
 	}
 	pusher := controller.New(
 		processor.NewFactory(
-			simple.NewWithHistogramDistribution(),
-			metricExporter,
+			selector.NewWithHistogramDistribution(
+				histogram.WithExplicitBoundaries([]float64{1, 2, 5, 10, 20, 50}),
+			),
+			temporalitySelector,
 		),
 		controller.WithExporter(metricExporter),
 		controller.WithResource(c.Resource),
@@ -91,6 +121,6 @@ func newMetricsExporter(endpoint string, insecure bool, headers map[string]strin
 			otlpmetricgrpc.WithHeaders(headers),
 			otlpmetricgrpc.WithCompressor(gzip.Name),
 		),
-		otlpmetric.WithMetricAggregationTemporalitySelector(aggregation.StatelessTemporalitySelector()),
+		otlpmetric.WithMetricAggregationTemporalitySelector(temporalitySelector),
 	)
 }
