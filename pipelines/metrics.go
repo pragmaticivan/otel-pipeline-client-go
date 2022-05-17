@@ -21,8 +21,6 @@ import (
 
 	"go.opentelemetry.io/otel/sdk/metric/sdkapi"
 
-	hostMetrics "go.opentelemetry.io/contrib/instrumentation/host"
-	runtimeMetrics "go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	metricglobal "go.opentelemetry.io/otel/metric/global"
@@ -93,13 +91,13 @@ func NewMetricsPipeline(c PipelineConfig) (func() error, error) {
 		return nil, fmt.Errorf("failed to start controller: %v", err)
 	}
 
-	if err = runtimeMetrics.Start(runtimeMetrics.WithMeterProvider(pusher)); err != nil {
-		return nil, fmt.Errorf("failed to start runtime metrics: %v", err)
-	}
+	// if err = runtimeMetrics.Start(runtimeMetrics.WithMeterProvider(pusher)); err != nil {
+	// 	return nil, fmt.Errorf("failed to start runtime metrics: %v", err)
+	// }
 
-	if err = hostMetrics.Start(hostMetrics.WithMeterProvider(pusher)); err != nil {
-		return nil, fmt.Errorf("failed to start host metrics: %v", err)
-	}
+	// if err = hostMetrics.Start(hostMetrics.WithMeterProvider(pusher)); err != nil {
+	// 	return nil, fmt.Errorf("failed to start host metrics: %v", err)
+	// }
 
 	metricglobal.SetMeterProvider(pusher)
 	return func() error {
